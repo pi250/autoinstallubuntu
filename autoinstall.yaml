@@ -1,1 +1,47 @@
+#cloud-config
+autoinstall:
+  version: 1
+  locale: es_ES.UTF-8
+  keyboard:
+    layout: es
+  
+  # Configuración del usuario principal
+  identity:
+    hostname: dev-station
+    # La contraseña está cifrada. Esta equivale a: ubuntu
+    # Puedes generar una nueva en terminal con: mkpasswd -m sha-512
+    password: "$6$exouser$Tq.q3R3h4Y9pM.o9dG.O9h1a5Y.kQZ9/eU.9/eU.9/" 
+    username: ubuntu
+  
+  # Paquetes base y herramientas de personalización
+  packages:
+    - ubuntu-desktop            # Asegura el entorno gráfico completo
+    - zsh                       # Terminal mejorada
+    - git
+    - curl
+    - wget
+    - neofetch
+    - gnome-tweaks              # Herramienta esencial de personalización de escritorio
+    - gnome-shell-extension-manager # Gestor de extensiones de GNOME
+    - papirus-icon-theme        # Pack de iconos elegante
+    - python3-pip
+    - python3-venv
 
+  # Comandos que se ejecutan al final de la instalación en el sistema ya instalado
+  late-commands:
+    # 1. Configurar Zsh y Oh My Zsh para el usuario 'ubuntu'
+    - curtin in-target --target=/target -- sudo -u ubuntu sh -c 'ZSH="~/.oh-my-zsh" sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended'
+    - curtin in-target --target=/target -- chsh -s /usr/bin/zsh ubuntu
+
+    # 2. Instalar OpenCode AI (Asistente de IA para la terminal)
+    - curtin in-target --target=/target -- bash -c 'curl -fsSL https://opencode.ai/install | bash'
+
+    # 3. Instalar repositorio Pentest-AI
+    - curtin in-target --target=/target -- git clone https://github.com/s3lfa/Pentest-AI /opt/Pentest-AI
+    - curtin in-target --target=/target -- chown -R ubuntu:ubuntu /opt/Pentest-AI
+    
+    # 4. Intentar resolver dependencias automáticamente para Pentest-AI
+    # Si usa Python (requirements.txt):
+    - curtin in-target --target=/target -- bash -c 'if [ -f /opt/Pentest-AI/requirements.txt ]; then cd /opt/Pentest-AI && pip3 install -r requirements.txt --break-system-packages; fi'
+    # Si usa Node.js (package.json):
+    - curtin in-target --target=/target -- bash -c 'if [ -f /opt/Pentest-AI/package.json ]; then apt-get update && apt-get install -y npm && cd /opt/Pentest-AI && npm install; fi'
